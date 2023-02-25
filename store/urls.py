@@ -6,7 +6,9 @@ app_name = 'store'
 
 urlpatterns = [
     path("",views.store,name = "store"),
-    path("<slug:category_slug>/",views.store, name = 'product_by_category'),
-    path("<slug:category_slug>/<slug:product_slug>/",views.product_detail,name = "product_detail"),
-    # path("search/", views.search, name = 'search')
+    path("category/<slug:category_slug>/",views.store, name = 'product_by_category'),
+    path("category/<slug:category_slug>/<slug:product_slug>/",views.product_detail,name = "product_detail"),
+    # http://127.0.0.1:8000/store/search/?keyword=jhdjd
+    # came from navbar submit form
+    path("search/", views.search, name = 'search')
 ]

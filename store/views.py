@@ -1,5 +1,6 @@
 from django.shortcuts import render,get_object_or_404
 from django.http import HttpResponse
+from django.db.models import Q
 
 # Create your views here.
 from store.models import Product
@@ -60,4 +61,20 @@ def product_detail(request,category_slug = None,product_slug = None):
 
 
 def search(request):
-    return HttpResponse("serach")
+    # http://127.0.0.1:8000/store/search/?keyword=jhdjd
+    # check keyword because we pass in navbar(submit form) in GET
+    products = None
+    if 'keyword' in request.GET:
+        keyword = request.GET['keyword']
+        if keyword:
+            # filter(value,value) behave as AND operator
+            # filter (Q(value) | Q(value)) behave as OR operator
+            # from django.db.models import Q
+            products = Product.objects.order_by('-created_date').filter(Q(description__icontains = keyword)|Q(product_name__icontains = keyword))
+            product_count = products.count()
+            
+    context = {
+        'products':products,
+        'product_count':product_count
+    }
+    return render(request,'store/store.html',context=context)
