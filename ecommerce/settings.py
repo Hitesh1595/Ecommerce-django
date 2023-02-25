@@ -41,7 +41,8 @@ INSTALLED_APPS = [
 
     'category.apps.CategoryConfig',
     'accounts.apps.AccountsConfig',
-    'store.apps.StoreConfig'
+    'store.apps.StoreConfig',
+    'carts.apps.CartsConfig',
 ]
 
 MIDDLEWARE = [
@@ -71,7 +72,9 @@ TEMPLATES = [
                 # acess all over website context (django functionality )
                 # use like global level anywhere in templates
                 # same boot_info in frappe
-                'category.context_processors.menu_links'
+                'category.context_processors.menu_links',
+                # used to show cart total items anywhere
+                'carts.context_processors.counter'
             ],
         },
     },
