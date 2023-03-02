@@ -146,3 +146,13 @@ STATICFILES_DIRS = [
 # media file configurations
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# used inbuilt django messages
+# https://docs.djangoproject.com/en/4.1/ref/contrib/messages/
+
+# files in includes alerts.html
+
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.ERROR: 'danger',
+}
