@@ -9,6 +9,15 @@ from django.contrib import messages,auth
 
 from django.contrib.auth.decorators import login_required
 
+# email verification
+from django.contrib.sites.shortcuts import get_current_site
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_decode,urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMessage
+
+
 def register(request):
     # check the form method is POST then all process is going
     if request.method == "POST":
@@ -26,8 +35,29 @@ def register(request):
             user.phone_number = phone_number
             user.save()
             # messages.danger(request,"message")
-            messages.success(request, "registration succesful")
-            return redirect("register")
+
+            # USER ACTIVATE ... make link to send email
+
+            current_site = get_current_site(request)
+            mail_subject = "Please activate you account"
+            message = render_to_string("accounts/account_verification_email.html", {
+                # upper user
+                "user":user,
+                "domain":current_site,
+                # encode the user primary key so no one detect maik id
+                "uid":urlsafe_base64_encode(force_bytes(user.pk)),
+                # used one library to generate and chehck the token ids
+                "token":default_token_generator.make_token(user),
+            })
+            to_email = email
+            send_email = EmailMessage(mail_subject,message,to=[to_email])
+            send_email.send()
+
+            #-----------------------------------------------------------------------
+
+
+            # messages.success(request, "thank you for register with us we have send you a verification mail to your mail")
+            return redirect("/accounts/login?command=verification&email="+email)
     else:
         form = RegistrationForm()
     context = {
@@ -44,8 +74,8 @@ def login(request):
 
         if user is not None:
             auth.login(request,user)
-            # messages.success(request,"you are login now")
-            return redirect("home")
+            messages.success(request,"you are login now")
+            return redirect("dashboard")
         else:
             messages.error(request,"Invalid login credentials")
             return redirect("login")
@@ -57,3 +87,28 @@ def logout(request):
     auth.logout(request)
     messages.success(request,"you are logout now")
     return redirect("login")
+
+
+def activate(request,uidb64,token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = Account._default_manager.get(pk = uid)
+
+    # cover various error
+    except(TypeError,ValueError,OverflowError,Account.DoesNotExist):
+        user = None
+    
+    if user is not None and default_token_generator.check_token(user,token):
+        user.is_active = True
+        user.save()
+        messages.success(request,"congrats your account is activated")
+        return redirect('login')
+    else:
+        messages.error(request,"invalid activation link")
+        return redirect("register")
+
+
+
+@login_required(login_url='login')   
+def dashboard(request):
+    return render(request,'accounts/dashboard.html')
