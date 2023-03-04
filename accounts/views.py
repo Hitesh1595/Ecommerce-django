@@ -112,3 +112,77 @@ def activate(request,uidb64,token):
 @login_required(login_url='login')   
 def dashboard(request):
     return render(request,'accounts/dashboard.html')
+
+
+def forgotPassword(request):
+
+    if request.method == "POST":
+        email = request.POST["email"]
+
+        # first we check email exist or not
+        if Account.objects.filter(email= email).exists():
+            # NOTE
+            # iexact means case insensitive but exact is case sensitive
+            user = Account.objects.get(email__exact = email)
+
+            # reset password email link
+            current_site = get_current_site(request)
+            mail_subject = "Please reset your password"
+            message = render_to_string("accounts/reset_password_email.html", {
+                # upper user
+                "user":user,
+                "domain":current_site,
+                # encode the user primary key so no one detect maik id
+                "uid":urlsafe_base64_encode(force_bytes(user.pk)),
+                # used one library to generate and chehck the token ids
+                "token":default_token_generator.make_token(user),
+            })
+            to_email = email
+            send_email = EmailMessage(mail_subject,message,to=[to_email])
+            send_email.send()
+
+            messages.success(request,"password of reset email has been sent to your email")
+            return redirect('login')
+        else:
+            messages.error(request,"acooount does not exist")
+            return redirect("forgotPassword")
+
+    return render(request, 'accounts/forgotPassword.html')
+
+
+def reset_password_validate(request,uidb64,token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = Account._default_manager.get(pk = uid)
+
+    # cover various error
+    except(TypeError,ValueError,OverflowError,Account.DoesNotExist):
+        user = None
+    
+    if user is not None and default_token_generator.check_token(user,token):
+        request.session["sid"] = uid
+        messages.success(request,"please reset your password")
+        return redirect("resetPassword")
+    else:
+        messages.error(request,"this link is expire")
+        return redirect("login")
+    
+def resetPassword(request):
+    if request.method == "POST":
+        password = request.POST["password"]
+        confirm_password = request.POST["confirm_password"]
+
+        if password == confirm_password:
+            uid = request.session.get("uid")
+            user = Account.objects.get(pk = uid)
+
+            # NOTE
+            # user have to set pass instead of save
+            user.set_password(password)
+            user.save()
+            messages.success(request,"password succesful change")
+            return redirect("login")
+        else:
+            messages.error(request,"password doest not match please try again")
+            return redirect('resetPassword')
+    return render(request, 'accounts/resetPassword.html')
