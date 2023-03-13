@@ -112,7 +112,10 @@
                 <p class="text-center mb-3">
                     <img src="{% static './images/misc/payments.png' %}" height="26">
                 </p>
-                <a href="{% url 'checkout' %}" class="btn btn-primary btn-block"> Make Payment</a>
+                <!-- <a href="{% url 'checkout' %}" class="btn btn-primary btn-block"> Make Payment</a> -->
+                <div id="paypal-button-container">
+                  <!-- paypal button will load -->
+                </div>
                 <a href="{% url 'store:store' %}" class="btn btn-light btn-block">Continue Shopping</a>
             </div> <!-- card-body.// -->
             </div> <!-- card.// -->
@@ -123,6 +126,104 @@
     </div> <!-- row.// -->
     
     <!-- ============================ COMPONENT 1 END .// ================================= -->
+    
+    <script>
+        function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+        
+        var amount1 =  "{{ grand_total }}"
+        var url = "{% url 'payments' %}"
+        const csrftoken = getCookie('csrftoken');
+        var orderID = "{{ order.order_number }}"
+        var payment_method = "Paypal"
+
+      const paypalButtonsComponent = paypal.Buttons({
+          // optional styling for buttons
+          // https://developer.paypal.com/docs/checkout/standard/customize/buttons-style-guide/
+          style: {
+            color: "blue",
+            shape: "rect",
+            layout: "vertical"
+          },
+
+          // set up the transaction
+          createOrder: (data, actions) => {
+              // pass in any options from the v2 orders create call:
+              // https://developer.paypal.com/api/orders/v2/#orders-create-request-body
+              const createOrderPayload = {
+                  purchase_units: [
+                      {
+                          amount: {
+                              value: amount1
+                          }
+                      }
+                  ]
+              };
+
+              return actions.order.create(createOrderPayload);
+          },
+
+          // finalize the transaction
+          onApprove: (data, actions) => {
+              const captureOrderHandler = (details) => {
+                  const payerName = details.payer.name.given_name;
+                  console.log('Transaction completed',details);
+
+                    sendData()
+
+                    
+                //  send the data to backend to save
+                  function sendData(){
+                    fetch(url, {
+                            method: "POST", // or 'PUT'
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken":  csrftoken,
+                            },
+                            body: JSON.stringify({
+                                transID:details.id,
+                                orderID:orderID,
+                                payment_method:payment_method,
+                                status:details.status,
+                            }),
+                            })
+                            // .then((response) => response.json())
+                            // .then((data) => {
+                            //     console.log("Success:", data);
+                            // })
+
+                  }
+              };
+
+              return actions.order.capture().then(captureOrderHandler);
+          },
+
+          // handle unrecoverable errors
+          onError: (err) => {
+              console.error('An error prevented the buyer from checking out with PayPal');
+          }
+      });
+
+      paypalButtonsComponent
+          .render("#paypal-button-container")
+          .catch((err) => {
+              console.error('PayPal Buttons failed to render');
+          });
+    </script>
     
 
 {% endblock %}

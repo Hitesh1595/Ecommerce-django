@@ -4,9 +4,10 @@ from django.contrib import messages
 from django.http import HttpResponse
 
 from orders.forms import OrderForm
-from orders.models import Order
+from orders.models import Order,Payment
 # Create your views here.
 import datetime
+import json
 
 def place_order(request,total = 0,quantity = 0):
     
@@ -84,4 +85,25 @@ def place_order(request,total = 0,quantity = 0):
 
 
 def payments(request):
+    body = json.loads(request.body)
+    print(body)
+    # {'transID': '8WE0473310140123T', 'orderID': '2023031321', 'payment_method': 'Paypal',\
+    #  'status': 'COMPLETED'}
+    order = Order.objects.get(user = request.user,is_ordered = False,order_number = body.get("orderID"))
+
+    payment = Payment(
+         user = request.user,
+         payment_id = body.get("transID"),
+         payment_method = body.get("payment_method"),
+         amount_paid = order.order_total,
+         status = body.get("status"),
+    )
+    payment.save()
+
+    order.payment = payment
+    order.is_ordered = True
+    order.save()
+
+
+    # store transactions inside the modal
     return render(request,"orders/payments.html")
