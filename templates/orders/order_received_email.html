@@ -1,0 +1,11 @@
+<!-- safest way to render value to html -->
+{% autoescape off %}
+
+hi {{user.first_name}}
+
+    YOUR ORDER HAS BEEN RECEIVED
+
+    ORDER NUMBER : {{ order.order_number }}
+
+
+{% endautoescape %}
