@@ -10,5 +10,7 @@ urlpatterns = [
     path("category/<slug:category_slug>/<slug:product_slug>/",views.product_detail,name = "product_detail"),
     # http://127.0.0.1:8000/store/search/?keyword=jhdjd
     # came from navbar submit form
-    path("search/", views.search, name = 'search')
+    path("search/", views.search, name = 'search'),
+
+    path("submit_review/<int:product_id>/",views.submit_review,name = "submit_review"),
 ]
