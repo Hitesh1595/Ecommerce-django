@@ -1,8 +1,8 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect,get_object_or_404
 
 # Create your views here.
-from accounts.forms import RegistrationForm
-from accounts.models import Account
+from accounts.forms import RegistrationForm,UserForm,UserProfileForm
+from accounts.models import Account,UserProfile
 
 # used inbuild messages
 from django.contrib import messages,auth
@@ -176,7 +176,15 @@ def activate(request,uidb64,token):
 
 @login_required(login_url='login')   
 def dashboard(request):
-    return render(request,'accounts/dashboard.html')
+    from orders.models import Order
+    orders = Order.objects.order_by("-created_at").filter(user_id = request.user.id,is_ordered = True)
+    orders_count = orders.count()
+    user_profile = UserProfile.objects.get(user_id = request.user.id)
+    context = {
+        "orders_count":orders_count,
+        "user_profile":user_profile
+    }
+    return render(request,'accounts/dashboard.html',context = context)
 
 
 def forgotPassword(request):
@@ -251,3 +259,101 @@ def resetPassword(request):
             messages.error(request,"password doest not match please try again")
             return redirect('resetPassword')
     return render(request, 'accounts/resetPassword.html')
+
+@login_required(login_url='login') 
+def my_orders(request):
+    from orders.models import Order
+    orders = Order.objects.filter(user = request.user, is_ordered = True).order_by("created_at")
+
+    context = {
+        "orders":orders,
+    }
+    return render(request,"accounts/my_orders.html",context = context)
+
+@login_required(login_url='login') 
+def edit_profile(request):
+    # get the instance for userprofile form
+    userprofile = get_object_or_404(UserProfile,user = request.user)
+
+    if request.method == "POST":
+        # try not to create new object every time therefore use instance updated the user same object
+        user_form = UserForm(request.POST,instance=request.user)
+        # NOTE
+        # request.FILES id used because we are using file upload(type file) in html edit_profile
+        profile_form = UserProfileForm(request.POST,request.FILES,instance = userprofile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request,"Your Profile has been updated")
+            return redirect("edit_profile")
+        
+    else:
+        # if not post
+        # then use to see value in fields using instance that are already in database
+        user_form = UserForm(instance = request.user)
+        profile_form = UserProfileForm(instance = userprofile)
+    
+    context = {
+        "user_form":user_form,
+        "profile_form":profile_form,
+        "userprofile":userprofile,
+    }
+
+
+    return render(request,"accounts/edit_profile.html",context = context)
+
+
+
+
+@login_required(login_url='login') 
+def change_password(request):
+    if request.method == 'POST':
+        current_password = request.POST['current_password']
+        new_password = request.POST['new_password']
+        confirm_password = request.POST['confirm_password']
+
+        user = Account.objects.get(username__exact = request.user.username)
+
+        if new_password == confirm_password:
+            sucess = user.check_password(current_password)
+            if sucess:
+                user.set_password(new_password)
+                user.save()
+
+                # automatically log out
+                # auth.logout()
+
+                messages.success(request,"Your password Updated Sucessfully")
+                return redirect("change_password")
+            else:
+                messages.error(request,"Please enter valid current password")
+                return redirect("change_password")
+
+
+        else:
+            messages.error(request,"new_password and confirm_password is not same")
+            return redirect("change_password")
+            
+
+    return render(request,"accounts/change_password.html")
+
+
+
+@login_required(login_url='login') 
+def order_detail(request,order_id):
+    from orders.models import OrderProduct,Order
+    order_detail = OrderProduct.objects.filter(order__order_number = order_id)
+    order = Order.objects.get(order_number = order_id)
+    subtotal = 0
+
+    for i in order_detail:
+        subtotal += i.product_price * i.quantity
+
+    context = {
+        "order_detail":order_detail,
+        "order":order,
+        "subtotal":subtotal
+
+    }
+    return render(request,"accounts/order_detail.html",context = context)
