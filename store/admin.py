@@ -1,7 +1,19 @@
 from django.contrib import admin
-from store.models import Product,Variation,ReviewRating
+from store.models import Product,Variation,ReviewRating,ProductGallery
+
+# pip install django-admin-thumbnails
+# use to see photos in product gallary which is in products
+import admin_thumbnails
 
 # Register your models here.
+
+# used to see the product photos in product objects
+
+admin.register(ProductGallery)
+@admin_thumbnails.thumbnail('image')
+class ProductGalleryInline(admin.TabularInline):
+    model = ProductGallery
+    extra = 1
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -9,6 +21,8 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ['product_name','price','stock','is_available','category','modified_date']
     # used for slug generation (T shirt ==> t-shit)
     prepopulated_fields = {"slug" : ("product_name",)}
+
+    inlines = [ProductGalleryInline]
 
 @admin.register(Variation)
 class VariationAdmin(admin.ModelAdmin):
@@ -25,4 +39,4 @@ class RatingReviewAdmin(admin.ModelAdmin):
     list_display = ["product","user","rating","created_at"]
 
 
-# admin.site.register([ReviewRating])
+# admin.site.register([ProductGallery])

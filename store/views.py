@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.db.models import Q
 
 # Create your views here.
-from store.models import Product,ReviewRating
+from store.models import Product,ReviewRating,ProductGallery
 from category.models import Category
 from orders.models import OrderProduct
 
@@ -71,12 +71,16 @@ def product_detail(request,category_slug = None,product_slug = None):
     # get the review of a specific product
     reviews = ReviewRating.objects.filter(product_id = single_product.id,status = True)
 
+    # get the product Gallery
+    product_gallery = ProductGallery.objects.filter(product_id = single_product.id)
+
 
     context = {
         "single_product" : single_product,
         "in_cart":in_cart,
         "orderproduct":orderproduct,
         "reviews":reviews,
+        "product_gallery":product_gallery,
     }
     return render(request,'store/product_detail.html',context=context)
 

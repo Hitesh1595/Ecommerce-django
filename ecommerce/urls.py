@@ -21,7 +21,10 @@ from django.conf.urls.static import static
 from ecommerce import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # admin honey pot 
+    path('admin/', include('admin_honeypot.urls', namespace='admin_honeypot')),
+
+    path('loginsecure/', admin.site.urls),
     path("", views.home, name = "home"),
     # pass to another url which is present in store.url
     path("cart/",include("carts.urls")),
